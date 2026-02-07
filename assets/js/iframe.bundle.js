@@ -278,7 +278,6 @@
       constructor() {
         this.listenForMessages();
         this.socket = null;
-        this._queue = [];
       }
       ["listenForMessages"]() {
         window.addEventListener("message", _0x5c0978 => {
@@ -303,14 +302,6 @@
             'readyState': this.socket.readyState
           }, '*');
           this.socket.onopen = () => {
-            // Flush queued messages sent before OPEN
-            if (this._queue && this._queue.length) {
-              const q = this._queue;
-              this._queue = [];
-              for (const msg of q) {
-                try { this.socket.send(msg); } catch (e) {}
-              }
-            }
             window.parent.postMessage({
               'type': 'open',
               'readyState': this.socket.readyState
@@ -342,8 +333,7 @@
         if (this.socket) {
           if ("send" === _0x375239) {
             if (this.socket.readyState !== _0x4d2cde.OPEN) {
-              this._queue.push(_0x5214cb.message);
-              return;
+              return void this.logError("Cannot send message, WebSocket is not open");
             }
             this.socket.send(_0x5214cb.message);
           }
