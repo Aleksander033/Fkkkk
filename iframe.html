@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Iframe WS Bridge</title>
+</head>
+<body>
+<script>
+(() => {
+  // Receives commands from parent and forwards to a real WebSocket connection.
+  let ws = null;
+  let binaryType = "arraybuffer";
+
+  function post(type, payload = {}) {
+    parent.postMessage({ type, ...payload }, "*");
+  }
+
+  window.addEventListener("message", (e) => {
+    const data = e.data || {};
+    const cmd = data.command;
+
+    if (cmd === "new") {
+      try {
+        if (ws) { ws.close(); ws = null; }
+        binaryType = data.binaryType || "arraybuffer";
+        ws = new WebSocket(data.targetUrl);
+        ws.binaryType = binaryType;
+
+        post("connecting", { readyState: ws.readyState });
+
+        ws.onopen = () => post("open", { readyState: ws.readyState });
+        ws.onmessage = (msg) => post("message", { message: msg.data });
+        ws.onerror = () => post("error", { readyState: ws ? ws.readyState : 3 });
+        ws.onclose = (ev) => post("close", { readyState: 3, code: ev.code, reason: ev.reason });
+      } catch (err) {
+        post("error", { readyState: 3, error: String(err) });
+      }
+      return;
+    }
+
+    if (cmd === "send") {
+      if (ws && ws.readyState === 1) ws.send(data.message);
+      return;
+    }
+
+    if (cmd === "close") {
+      if (ws) ws.close(data.code || 1000, data.reason || "");
+      return;
+    }
+
+    // Optional hooks used by some clients; safely no-op if not needed
+    if (cmd === "senpaModuleAlloc" || cmd === "senpaModuleAllocArray") {
+      // Intentionally empty (keeps compatibility with caller)
+      return;
+    }
+  });
+})();
+</script>
+</body>
+</html>
