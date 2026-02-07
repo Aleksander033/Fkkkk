@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const WS_CONFIG = { CHAT: 'wss://chat--ahmar22244.replit.app/chat' };
+  const WS_CONFIG = "";
 
   const qs = (s, r = document) => r.querySelector(s);
   const getText = e => (e && 'value' in e) ? String(e.value) : '';
